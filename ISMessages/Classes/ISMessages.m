@@ -9,7 +9,7 @@
 #import "ISMessages.h"
 
 static CGFloat const kDefaultCardViewHeight = 51.f;
-static CGFloat const kDefaulInset = 8.f;
+static CGFloat const kDefaultInset = 12.f;
 
 @interface ISMessages ()
 
@@ -128,29 +128,31 @@ static NSMutableArray* currentAlertArray = nil;
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-    
+
+    CGFloat statusBarHeight = [[UIApplication sharedApplication] statusBarFrame].size.height;
+    CGFloat statusBarCorrection = (_alertPosition == ISAlertPositionBottom ? 0 : statusBarHeight) + 10;
+
     self.messageLabelHeight = ceilf([self preferredHeightForMessageString:_messageString]);
     self.titleLabelHeight = ceilf([self preferredHeightForTitleString:_titleString]);
-    self.alertViewHeight = kDefaulInset + _titleLabelHeight + 3.f + _messageLabelHeight + 8.f;
-    
-    
+    self.alertViewHeight = kDefaultInset + _titleLabelHeight + 3.f + _messageLabelHeight + kDefaultInset + statusBarCorrection;
+
     if (_alertViewHeight < kDefaultCardViewHeight) {
         self.alertViewHeight = kDefaultCardViewHeight;
     }
     
     CGFloat screenWidth = [UIScreen mainScreen].bounds.size.width;
     CGFloat screenHeight = [UIScreen mainScreen].bounds.size.height;
-    CGFloat alertYPosition = screenHeight - (_alertViewHeight + screenHeight);
-    
+    CGFloat alertYPosition = 0.f;
+
     if (_alertPosition == ISAlertPositionBottom) {
         alertYPosition = screenHeight + _alertViewHeight;
     }
     
     self.view.backgroundColor = [UIColor clearColor];
-    self.view.frame = CGRectMake((kDefaulInset*2.f)/2.f, alertYPosition, screenWidth - (kDefaulInset*2.f), _alertViewHeight);
-    
+    self.view.frame = CGRectMake(0, alertYPosition, screenWidth - 0, _alertViewHeight);
+
     self.view.alpha = 0.7f;
-    self.view.layer.cornerRadius = 5.f;
+    self.view.layer.cornerRadius = 0.f;
     self.view.layer.masksToBounds = YES;
     [self constructAlertCardView];
     
@@ -171,14 +173,18 @@ static NSMutableArray* currentAlertArray = nil;
     UIView* alertView = [[UIView alloc] initWithFrame:CGRectMake(0.f, 0.f, self.view.frame.size.width, self.view.frame.size.height)];
     alertView.backgroundColor = _alertViewBackgroundColor;
     [self.view addSubview:alertView];
-    
-    UIImageView* iconImage = [[UIImageView alloc] initWithFrame:CGRectMake(kDefaulInset, (_alertViewHeight - _iconImageSize.height) / 2.f, _iconImageSize.width, _iconImageSize.height)];
+
+    CGFloat heightCorrection = _alertPosition == ISAlertPositionBottom ? -5.f : 20.f;
+
+    UIImageView* iconImage = [[UIImageView alloc] initWithFrame:CGRectMake(kDefaultInset, (_alertViewHeight - _iconImageSize.height + heightCorrection) / 2.f, _iconImageSize.width, _iconImageSize.height)];
     iconImage.contentMode = UIViewContentModeScaleAspectFit;
     iconImage.image = _iconImage;
     [alertView addSubview:iconImage];
-    
+
+    heightCorrection = heightCorrection + 5.f;
+
     UILabel* titleLabel = [UILabel new];
-    titleLabel.frame = CGRectMake((kDefaulInset*2.f) + _iconImageSize.width, kDefaulInset, self.view.frame.size.width - ((kDefaulInset*3.f) + _iconImageSize.width), _titleLabelHeight);
+    titleLabel.frame = CGRectMake((kDefaultInset*2.f) + _iconImageSize.width, kDefaultInset + heightCorrection, self.view.frame.size.width - ((kDefaultInset*3.f) + _iconImageSize.width), _titleLabelHeight);
     titleLabel.lineBreakMode = NSLineBreakByWordWrapping;
     titleLabel.textAlignment = NSTextAlignmentLeft;
     titleLabel.numberOfLines = 0;
@@ -188,7 +194,7 @@ static NSMutableArray* currentAlertArray = nil;
     [alertView addSubview:titleLabel];
     
     UILabel* messageLabel = [UILabel new];
-    messageLabel.frame = CGRectMake((kDefaulInset*2.f) + _iconImageSize.width, kDefaulInset + _titleLabelHeight + 3.f, self.view.frame.size.width - ((kDefaulInset*3.f) + _iconImageSize.width), _messageLabelHeight);
+    messageLabel.frame = CGRectMake((kDefaultInset*2.f) + _iconImageSize.width, kDefaultInset + heightCorrection + _titleLabelHeight + 3.f, self.view.frame.size.width - ((kDefaultInset*3.f) + _iconImageSize.width), _messageLabelHeight);
     messageLabel.lineBreakMode = NSLineBreakByWordWrapping;
     messageLabel.textAlignment = NSTextAlignmentLeft;
     messageLabel.numberOfLines = 0;
@@ -233,15 +239,15 @@ static NSMutableArray* currentAlertArray = nil;
     }
     
     @synchronized (currentAlertArray) {
-        
-        [([UIApplication sharedApplication].delegate).window addSubview:self.view];
-        
+
+        [[UIApplication sharedApplication].keyWindow addSubview:self.view];
+
         CGFloat screenWidth = [UIScreen mainScreen].bounds.size.width;
         CGFloat screenHeight = [UIScreen mainScreen].bounds.size.height;
-        CGFloat alertYPosition = [[UIApplication sharedApplication] statusBarFrame].size.height == 20.f ? [[UIApplication sharedApplication] statusBarFrame].size.height : [[UIApplication sharedApplication] statusBarFrame].size.height + 5.f;
-        
+        CGFloat alertYPosition = -10.f;
+
         if (_alertPosition == ISAlertPositionBottom) {
-            alertYPosition = screenHeight - _alertViewHeight - 10.f;
+            alertYPosition = screenHeight - _alertViewHeight + 10;
         }
         
         [UIView animateWithDuration:0.5f
@@ -250,10 +256,10 @@ static NSMutableArray* currentAlertArray = nil;
               initialSpringVelocity:0.5f
                             options:UIViewAnimationOptionCurveEaseIn
                          animations:^{
-                             self.view.frame = CGRectMake((kDefaulInset*2.f)/2.f, alertYPosition, screenWidth - (kDefaulInset*2.f), _alertViewHeight);
+                             self.view.frame = CGRectMake(0, alertYPosition, screenWidth, _alertViewHeight);
                              self.view.alpha = 1.f;
                          } completion:^(BOOL finished) {
-                             self.view.frame = CGRectMake((kDefaulInset*2.f)/2.f, alertYPosition, screenWidth - (kDefaulInset*2.f), _alertViewHeight);
+                             self.view.frame = CGRectMake(0, alertYPosition, screenWidth, _alertViewHeight);
                              self.view.alpha = 1.f;
                          }];
         
@@ -312,10 +318,10 @@ static NSMutableArray* currentAlertArray = nil;
             
             [UIView animateWithDuration:0.3f animations:^{
                 self.view.alpha = 0.7;
-                self.view.frame = CGRectMake((kDefaulInset*2.f)/2.f, alertYPosition, self.view.frame.size.width, self.view.frame.size.height);
+                self.view.frame = CGRectMake(0, alertYPosition, self.view.frame.size.width, self.view.frame.size.height);
             } completion:^(BOOL finished) {
                 self.view.alpha = 0.7;
-                self.view.frame = CGRectMake((kDefaulInset*2.f)/2.f, alertYPosition, self.view.frame.size.width, self.view.frame.size.height);
+                self.view.frame = CGRectMake(0, alertYPosition, self.view.frame.size.width, self.view.frame.size.height);
                 [self.view removeFromSuperview];
             }];
             
@@ -452,8 +458,6 @@ static NSMutableArray* currentAlertArray = nil;
         default:
             break;
     }
-    
-    
 }
 
 - (void)dealloc {
