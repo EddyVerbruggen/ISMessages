@@ -143,12 +143,12 @@ static NSMutableArray* currentAlertArray = nil;
     
     CGFloat screenWidth = [UIScreen mainScreen].bounds.size.width;
     CGFloat screenHeight = [UIScreen mainScreen].bounds.size.height;
-    CGFloat alertYPosition = 0.f;
+    CGFloat alertYPosition = -_alertViewHeight;
 
     if (_alertPosition == ISAlertPositionBottom) {
         alertYPosition = screenHeight + _alertViewHeight;
     }
-    
+
     self.view.backgroundColor = [UIColor clearColor];
     self.view.frame = CGRectMake(0, alertYPosition, screenWidth - 0, _alertViewHeight);
 
@@ -156,7 +156,7 @@ static NSMutableArray* currentAlertArray = nil;
     self.view.layer.cornerRadius = 0.f;
     self.view.layer.masksToBounds = YES;
     [self constructAlertCardView];
-    
+
 }
 
 - (void)viewWillAppear:(BOOL)animated {
@@ -170,7 +170,7 @@ static NSMutableArray* currentAlertArray = nil;
 }
 
 - (void)constructAlertCardView {
-    
+
     UIView* alertView = [[UIView alloc] initWithFrame:CGRectMake(0.f, 0.f, self.view.frame.size.width, self.view.frame.size.height)];
     alertView.backgroundColor = _alertViewBackgroundColor;
     [self.view addSubview:alertView];
@@ -193,7 +193,7 @@ static NSMutableArray* currentAlertArray = nil;
     titleLabel.font = _titleLabelFont;
     titleLabel.text = _titleString;
     [alertView addSubview:titleLabel];
-    
+
     UILabel* messageLabel = [UILabel new];
     messageLabel.frame = CGRectMake((kDefaultInset*2.f) + _iconImageSize.width, kDefaultInset + heightCorrection + _titleLabelHeight + 3.f, self.view.frame.size.width - ((kDefaultInset*3.f) + _iconImageSize.width), _messageLabelHeight);
     messageLabel.lineBreakMode = NSLineBreakByWordWrapping;
@@ -203,42 +203,42 @@ static NSMutableArray* currentAlertArray = nil;
     messageLabel.font = _messageLabelFont;
     messageLabel.text = _messageString;
     [alertView addSubview:messageLabel];
-    
+
     if (_hideOnSwipe) {
         UISwipeGestureRecognizer* swipeGesture = [[UISwipeGestureRecognizer alloc] initWithTarget:self action:@selector(gestureAction)];
         swipeGesture.direction = UISwipeGestureRecognizerDirectionUp | UISwipeGestureRecognizerDirectionDown;
         [alertView addGestureRecognizer:swipeGesture];
     }
-    
+
     if (_hideOnTap) {
         UITapGestureRecognizer* tapGesture = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(gestureActionWithHandler)];
         [alertView addGestureRecognizer:tapGesture];
     }
-    
+
 }
 
 - (void)show:(handler)handler didHide:(completion)didHide {
-    
+
     if (handler) {
         _handler = handler;
         UITapGestureRecognizer* tapGesture = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(gestureActionWithHandler)];
         [self.view addGestureRecognizer:tapGesture];
     }
-    
+
     if (didHide) {
         _completion = didHide;
     }
-    
+
     [self performSelectorOnMainThread:@selector(showInMain) withObject:nil waitUntilDone:NO];
-    
+
 }
 
 - (void)showInMain {
-        
+
     if ([currentAlertArray count] != 0) {
         [self performSelectorOnMainThread:@selector(hide:) withObject:@(YES) waitUntilDone:YES];
     }
-    
+
     @synchronized (currentAlertArray) {
 
         [[UIApplication sharedApplication].keyWindow addSubview:self.view];
@@ -250,10 +250,10 @@ static NSMutableArray* currentAlertArray = nil;
         if (_alertPosition == ISAlertPositionBottom) {
             alertYPosition = screenHeight - _alertViewHeight + 10;
         }
-        
+
         [UIView animateWithDuration:0.5f
                               delay:0.f
-             usingSpringWithDamping:0.7f
+             usingSpringWithDamping:(_alertPosition == ISAlertPositionBottom ? 0.72f : 0.65f)
               initialSpringVelocity:0.5f
                             options:UIViewAnimationOptionCurveEaseIn
                          animations:^{
