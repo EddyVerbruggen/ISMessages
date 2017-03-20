@@ -36,6 +36,7 @@ static CGFloat const kDefaultInset = 12.f;
 @property (assign, nonatomic) CGFloat messageLabelHeight;
 @property (assign, nonatomic) CGFloat titleLabelHeight;
 @property (assign, nonatomic) CGFloat alertViewHeight;
+@property (assign, nonatomic) CGFloat statusBarHeight;
 @property (assign, nonatomic) CGSize iconImageSize;
 
 // callbacks
@@ -129,8 +130,8 @@ static NSMutableArray* currentAlertArray = nil;
 - (void)viewDidLoad {
     [super viewDidLoad];
 
-    CGFloat statusBarHeight = [[UIApplication sharedApplication] statusBarFrame].size.height;
-    CGFloat statusBarCorrection = (_alertPosition == ISAlertPositionBottom ? 0 : statusBarHeight) + 10;
+    _statusBarHeight = [[UIApplication sharedApplication] statusBarFrame].size.height;
+    CGFloat statusBarCorrection = (_alertPosition == ISAlertPositionBottom ? 0 : _statusBarHeight) + 10;
 
     self.messageLabelHeight = ceilf([self preferredHeightForMessageString:_messageString]);
     self.titleLabelHeight = ceilf([self preferredHeightForTitleString:_titleString]);
@@ -174,14 +175,14 @@ static NSMutableArray* currentAlertArray = nil;
     alertView.backgroundColor = _alertViewBackgroundColor;
     [self.view addSubview:alertView];
 
-    CGFloat heightCorrection = _alertPosition == ISAlertPositionBottom ? -5.f : 20.f;
+    CGFloat heightCorrection = _alertPosition == ISAlertPositionBottom ? -10.f : (_statusBarHeight > 0.f ? 20.f : 10.f);
 
     UIImageView* iconImage = [[UIImageView alloc] initWithFrame:CGRectMake(kDefaultInset, (_alertViewHeight - _iconImageSize.height + heightCorrection) / 2.f, _iconImageSize.width, _iconImageSize.height)];
     iconImage.contentMode = UIViewContentModeScaleAspectFit;
     iconImage.image = _iconImage;
     [alertView addSubview:iconImage];
 
-    heightCorrection = heightCorrection + 5.f;
+    heightCorrection = heightCorrection + (_alertPosition == ISAlertPositionBottom ? 10.0f : (_statusBarHeight > 0.f ? 5.f : 0.f));
 
     UILabel* titleLabel = [UILabel new];
     titleLabel.frame = CGRectMake((kDefaultInset*2.f) + _iconImageSize.width, kDefaultInset + heightCorrection, self.view.frame.size.width - ((kDefaultInset*3.f) + _iconImageSize.width), _titleLabelHeight);
