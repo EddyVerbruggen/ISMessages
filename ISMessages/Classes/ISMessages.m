@@ -131,7 +131,7 @@ static NSMutableArray* currentAlertArray = nil;
     [super viewDidLoad];
 
     _statusBarHeight = [[UIApplication sharedApplication] statusBarFrame].size.height;
-    CGFloat statusBarCorrection = (_alertPosition == ISAlertPositionBottom ? 0 : _statusBarHeight) + 10;
+    CGFloat statusBarCorrection = (_alertPosition == ISAlertPositionBottom ? 0 : _statusBarHeight) + (_alertPosition == ISAlertPositionBottom ? 10 : (_statusBarHeight / 2));
 
     self.messageLabelHeight = ceilf([self preferredHeightForMessageString:_messageString]);
     self.titleLabelHeight = ceilf([self preferredHeightForTitleString:_titleString]);
@@ -141,6 +141,16 @@ static NSMutableArray* currentAlertArray = nil;
         self.alertViewHeight = kDefaultCardViewHeight;
     }
     
+    CGFloat insetCorrection = 0;
+    if (@available(iOS 11.0, *)) {
+        if (_alertPosition == ISAlertPositionBottom) {
+            UIWindow *window = UIApplication.sharedApplication.keyWindow;
+            insetCorrection = window.safeAreaInsets.bottom;
+        }
+    }
+
+    self.alertViewHeight += insetCorrection;
+
     CGFloat screenWidth = [UIScreen mainScreen].bounds.size.width;
     CGFloat screenHeight = [UIScreen mainScreen].bounds.size.height;
     CGFloat alertYPosition = -_alertViewHeight;
@@ -175,14 +185,22 @@ static NSMutableArray* currentAlertArray = nil;
     alertView.backgroundColor = _alertViewBackgroundColor;
     [self.view addSubview:alertView];
 
-    CGFloat heightCorrection = _alertPosition == ISAlertPositionBottom ? -10.f : (_statusBarHeight > 0.f ? 20.f : 10.f);
+    CGFloat heightCorrection = _alertPosition == ISAlertPositionBottom ? -10.f : (_statusBarHeight > 0.f ? _statusBarHeight : 10.f);
 
-    UIImageView* iconImage = [[UIImageView alloc] initWithFrame:CGRectMake(kDefaultInset, (_alertViewHeight - _iconImageSize.height + heightCorrection) / 2.f, _iconImageSize.width, _iconImageSize.height)];
+    CGFloat insetCorrection = 0;
+    if (@available(iOS 11.0, *)) {
+        if (_alertPosition == ISAlertPositionBottom) {
+            UIWindow *window = UIApplication.sharedApplication.keyWindow;
+            insetCorrection = -window.safeAreaInsets.bottom;
+        }
+    }
+
+    UIImageView* iconImage = [[UIImageView alloc] initWithFrame:CGRectMake(kDefaultInset, (_alertViewHeight - _iconImageSize.height + heightCorrection + insetCorrection) / 2.f, _iconImageSize.width, _iconImageSize.height)];
     iconImage.contentMode = UIViewContentModeScaleAspectFit;
     iconImage.image = _iconImage;
     [alertView addSubview:iconImage];
 
-    heightCorrection = heightCorrection + (_alertPosition == ISAlertPositionBottom ? 10.0f : (_statusBarHeight > 0.f ? 5.f : 0.f));
+    heightCorrection = heightCorrection + (_alertPosition == ISAlertPositionBottom ? 10.0f : insetCorrection + (_statusBarHeight > 0.f ? (_statusBarHeight / 4) : 0.f));
 
     UILabel* titleLabel = [UILabel new];
     titleLabel.frame = CGRectMake((kDefaultInset*2.f) + _iconImageSize.width, kDefaultInset + heightCorrection, self.view.frame.size.width - ((kDefaultInset*3.f) + _iconImageSize.width), _titleLabelHeight);
