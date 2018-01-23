@@ -16,6 +16,7 @@ static CGFloat const kDefaultInset = 12.f;
 // Content
 @property (nonatomic, copy) NSString* titleString;
 @property (nonatomic, copy) NSString* messageString;
+@property (nonatomic, copy) NSString* alertTypeAcessibilityLabel;
 @property (strong, nonatomic) UIImage* iconImage;
 
 // Interaction
@@ -165,6 +166,10 @@ static NSMutableArray* currentAlertArray = nil;
     self.view.alpha = 0.7f;
     self.view.layer.cornerRadius = 0.f;
     self.view.layer.masksToBounds = YES;
+
+    // Make sure accessibility focus stays within the ISMessage.
+    self.view.accessibilityViewIsModal = true;
+
     [self constructAlertCardView];
 
 }
@@ -173,6 +178,11 @@ static NSMutableArray* currentAlertArray = nil;
     [super viewWillAppear:animated];
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(deviceOrientationDidChange:) name:UIDeviceOrientationDidChangeNotification object:nil];
     [[UIDevice currentDevice] beginGeneratingDeviceOrientationNotifications];
+}
+
+- (bool)accessibilityPerformEscape {
+    [self hide:@(YES)];
+    return true;
 }
 
 - (void)deviceOrientationDidChange:(NSNotification *)notification {
@@ -198,6 +208,9 @@ static NSMutableArray* currentAlertArray = nil;
     UIImageView* iconImage = [[UIImageView alloc] initWithFrame:CGRectMake(kDefaultInset, (_alertViewHeight - _iconImageSize.height + heightCorrection + insetCorrection) / 2.f, _iconImageSize.width, _iconImageSize.height)];
     iconImage.contentMode = UIViewContentModeScaleAspectFit;
     iconImage.image = _iconImage;
+    iconImage.isAccessibilityElement = true;
+    iconImage.accessibilityTraits = UIAccessibilityTraitButton;
+    iconImage.accessibilityLabel = NSLocalizedString(@"OK", comment: "");
     [alertView addSubview:iconImage];
 
     heightCorrection = heightCorrection + (_alertPosition == ISAlertPositionBottom ? 10.0f : insetCorrection + (_statusBarHeight > 0.f ? (_statusBarHeight / 4) : 0.f));
@@ -210,6 +223,9 @@ static NSMutableArray* currentAlertArray = nil;
     titleLabel.textColor = _titleLabelTextColor;
     titleLabel.font = _titleLabelFont;
     titleLabel.text = _titleString;
+    if (self.alertTypeAcessibilityLabel != nil) {
+        titleLabel.accessibilityLabel = [NSString stringWithFormat:@"%@, %@", self.alertTypeAcessibilityLabel, _titleString];
+    }
     [alertView addSubview:titleLabel];
 
     UILabel* messageLabel = [UILabel new];
@@ -221,6 +237,9 @@ static NSMutableArray* currentAlertArray = nil;
     messageLabel.font = _messageLabelFont;
     messageLabel.text = _messageString;
     [alertView addSubview:messageLabel];
+
+    // Sets custom order of accessibility elements.
+    alertView.accessibilityElements = @[titleLabel, messageLabel, iconImage];
 
     if (_hideOnSwipe) {
         UISwipeGestureRecognizer* swipeGesture = [[UISwipeGestureRecognizer alloc] initWithTarget:self action:@selector(gestureAction)];
@@ -283,8 +302,11 @@ static NSMutableArray* currentAlertArray = nil;
                          }];
         
         [currentAlertArray addObject:self];
-        
-        if (_duration > 0.5f) {
+
+        UIAccessibilityPostNotification(UIAccessibilityLayoutChangedNotification, self.view);
+
+        // Auto-hide if significant duration is set and VoiceOver is off.
+        if (_duration > 0.5f && !UIAccessibilityIsVoiceOverRunning()) {
             [self performSelector:@selector(hide:) withObject:@(NO) afterDelay:_duration];
         }
     }
@@ -342,6 +364,7 @@ static NSMutableArray* currentAlertArray = nil;
                 self.view.alpha = 0.7;
                 self.view.frame = CGRectMake(0, alertYPosition, self.view.frame.size.width, self.view.frame.size.height);
                 [self.view removeFromSuperview];
+                UIAccessibilityPostNotification(UIAccessibilityScreenChangedNotification, nil);
             }];
             
         }
@@ -364,6 +387,7 @@ static NSMutableArray* currentAlertArray = nil;
                              } completion:^(BOOL finished) {
                                  [activeAlert.view removeFromSuperview];
                                  [activeAlert removeFromParentViewController];
+                                 UIAccessibilityPostNotification(UIAccessibilityScreenChangedNotification, nil);
                              }];
             
         }
@@ -443,6 +467,7 @@ static NSMutableArray* currentAlertArray = nil;
     
     switch (alertType) {
         case ISAlertTypeSuccess: {
+            self.alertTypeAcessibilityLabel = NSLocalizedString(@"Success", comment: "");
             self.alertViewBackgroundColor = [UIColor colorWithRed:31.f/255.f green:177.f/255.f blue:138.f/255.f alpha:1.f];
             if (!_iconImage) {
                 self.iconImage = [self imageNamed:@"isSuccessIcon"];
@@ -450,6 +475,7 @@ static NSMutableArray* currentAlertArray = nil;
             break;
         }
         case ISAlertTypeError: {
+            self.alertTypeAcessibilityLabel = NSLocalizedString(@"Error", comment: "");
             self.alertViewBackgroundColor = [UIColor colorWithRed:255.f/255.f green:91.f/255.f blue:65.f/255.f alpha:1.f];
             if (!_iconImage) {
                 self.iconImage = [self imageNamed:@"isErrorIcon"];
@@ -457,6 +483,7 @@ static NSMutableArray* currentAlertArray = nil;
             break;
         }
         case ISAlertTypeWarning: {
+            self.alertTypeAcessibilityLabel = NSLocalizedString(@"Warning", comment: "");
             self.alertViewBackgroundColor = [UIColor colorWithRed:255.f/255.f green:134.f/255.f blue:0.f/255.f alpha:1.f];
             if (!_iconImage) {
                 self.iconImage = [self imageNamed:@"isWarningIcon"];
@@ -464,6 +491,7 @@ static NSMutableArray* currentAlertArray = nil;
             break;
         }
         case ISAlertTypeInfo: {
+            self.alertTypeAcessibilityLabel = NSLocalizedString(@"Info", comment: "");
             self.alertViewBackgroundColor = [UIColor colorWithRed:75.f/255.f green:107.f/255.f blue:122.f/255.f alpha:1.f];
             if (!_iconImage) {
                 self.iconImage = [self imageNamed:@"isInfoIcon"];
