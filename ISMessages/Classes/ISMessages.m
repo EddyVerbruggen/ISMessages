@@ -303,7 +303,7 @@ static NSMutableArray* currentAlertArray = nil;
         
         [currentAlertArray addObject:self];
 
-        UIAccessibilityPostNotification(UIAccessibilityLayoutChangedNotification, self.view);
+        UIAccessibilityPostNotification(UIAccessibilityScreenChangedNotification, self.view);
 
         // Auto-hide if significant duration is set and VoiceOver is off.
         if (_duration > 0.5f && !UIAccessibilityIsVoiceOverRunning()) {
