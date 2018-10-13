@@ -43,6 +43,7 @@ static CGFloat const kDefaultInset = 12.f;
 // callbacks
 
 @property handler handler;
+@property beginning beginning;
 @property completion completion;
 
 @end
@@ -69,7 +70,7 @@ static NSMutableArray* currentAlertArray = nil;
                                                          alertType:type
                                                      alertPosition:position];
     
-    [alert show:nil didHide:didHide];
+    [alert show:nil didBegin:nil didHide:didHide];
     
     return alert;
     
@@ -254,20 +255,24 @@ static NSMutableArray* currentAlertArray = nil;
 
 }
 
-- (void)show:(handler)handler didHide:(completion)didHide {
+- (void)show:(handler)handler didBegin:(beginning)didBegin didHide:(completion)didHide {
 
     if (handler) {
         _handler = handler;
         UITapGestureRecognizer* tapGesture = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(gestureActionWithHandler)];
         [self.view addGestureRecognizer:tapGesture];
     }
+  
+    if (didBegin) {
+        _beginning = didBegin;
+    }
 
     if (didHide) {
         _completion = didHide;
     }
 
+    _beginning(true);
     [self performSelectorOnMainThread:@selector(showInMain) withObject:nil waitUntilDone:NO];
-
 }
 
 - (void)showInMain {
@@ -294,11 +299,12 @@ static NSMutableArray* currentAlertArray = nil;
               initialSpringVelocity:0.5f
                             options:UIViewAnimationOptionCurveEaseIn
                          animations:^{
-                             self.view.frame = CGRectMake(0, alertYPosition, screenWidth, _alertViewHeight);
+                             self.view.frame = CGRectMake(0, alertYPosition, screenWidth, self->_alertViewHeight);
                              self.view.alpha = 1.f;
                          } completion:^(BOOL finished) {
-                             self.view.frame = CGRectMake(0, alertYPosition, screenWidth, _alertViewHeight);
+                             self.view.frame = CGRectMake(0, alertYPosition, screenWidth, self->_alertViewHeight);
                              self.view.alpha = 1.f;
+                             self->_beginning(false);
                          }];
         
         [currentAlertArray addObject:self];
@@ -327,6 +333,9 @@ static NSMutableArray* currentAlertArray = nil;
         [self performSelector:@selector(hideInMain) withObject:nil afterDelay:delayDuration];
     }
     
+    if (_completion) {
+        _completion(YES);
+    }
 }
 
 - (void)gestureAction {
@@ -460,7 +469,11 @@ static NSMutableArray* currentAlertArray = nil;
     
     self.titleLabelTextColor = [UIColor whiteColor];
     self.messageLabelTextColor = [UIColor whiteColor];
-    self.titleLabelFont = [UIFont systemFontOfSize:15.f weight:UIFontWeightMedium];
+    if (@available(iOS 8.2, *)) {
+        self.titleLabelFont = [UIFont systemFontOfSize:15.f weight:UIFontWeightMedium];
+    } else {
+        self.titleLabelFont = [UIFont systemFontOfSize:15.f];
+    }
     self.messageLabelFont = [UIFont systemFontOfSize:15.f];
     
     self.iconImage = iconImage;
@@ -510,9 +523,9 @@ static NSMutableArray* currentAlertArray = nil;
 - (void)dealloc {
     [[UIDevice currentDevice] endGeneratingDeviceOrientationNotifications];
     [[NSNotificationCenter defaultCenter] removeObserver:self name:UIDeviceOrientationDidChangeNotification object:nil];
-    if (_completion) {
-        _completion(YES);
-    }
+    _completion = nil;
+    _beginning = nil;
+    _handler = nil;
 }
 
 
