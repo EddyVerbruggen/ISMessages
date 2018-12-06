@@ -60,7 +60,7 @@ static NSMutableArray* currentAlertArray = nil;
                              alertType:(ISAlertType)type
                          alertPosition:(ISAlertPosition)position
                                didHide:(completion)didHide {
-    
+
     ISMessages* alert = [[ISMessages alloc] initCardAlertWithTitle:title
                                                            message:message
                                                          iconImage:nil
@@ -69,11 +69,11 @@ static NSMutableArray* currentAlertArray = nil;
                                                          hideOnTap:hideOnTap
                                                          alertType:type
                                                      alertPosition:position];
-    
+
     [alert show:nil didBegin:nil didHide:didHide];
-    
+
     return alert;
-    
+
 }
 
 + (instancetype)cardAlertWithTitle:(NSString*)title
@@ -84,7 +84,7 @@ static NSMutableArray* currentAlertArray = nil;
                          hideOnTap:(BOOL)hideOnTap
                          alertType:(ISAlertType)type
                      alertPosition:(ISAlertPosition)position{
-    
+
     ISMessages* alert = [[ISMessages alloc] initCardAlertWithTitle:title
                                                            message:message
                                                          iconImage:iconImage
@@ -94,7 +94,7 @@ static NSMutableArray* currentAlertArray = nil;
                                                          alertType:type
                                                      alertPosition:position];
     return alert;
-    
+
 }
 
 - (instancetype)initCardAlertWithTitle:(NSString*)title
@@ -105,15 +105,15 @@ static NSMutableArray* currentAlertArray = nil;
                              hideOnTap:(BOOL)hideOnTap
                              alertType:(ISAlertType)type
                          alertPosition:(ISAlertPosition)position{
-    
+
     self = [super init];
-    
+
     if (self) {
-        
+
         if (!currentAlertArray) {
             currentAlertArray = [NSMutableArray new];
         }
-        
+
         self.titleString = title;
         self.messageString = message;
         self.duration = duration;
@@ -122,17 +122,31 @@ static NSMutableArray* currentAlertArray = nil;
         [self configureViewForAlertType:type iconImage:iconImage];
         self.iconImageSize = _iconImage == nil ? CGSizeZero : CGSizeMake(35.f, 35.f);
         self.alertPosition = position;
-       
+
     }
-    
+
     return self;
-    
+
 }
 
 - (void)viewDidLoad {
     [super viewDidLoad];
 
     _statusBarHeight = [[UIApplication sharedApplication] statusBarFrame].size.height;
+
+    // correct the height in case the statusbar is hidden and we're running on an 'X' model
+    if (_statusBarHeight == 0) {
+      if (@available(iOS 11.0, *)) {
+          UIWindow *window = UIApplication.sharedApplication.keyWindow;
+          _statusBarHeight = window.safeAreaInsets.top;
+      }
+    }
+
+    // this makes the alert look nicer on non-'X' models when the statusbar is hidden
+    if (_statusBarHeight == 0) {
+      _statusBarHeight = 12;
+    }
+
     CGFloat statusBarCorrection = (_alertPosition == ISAlertPositionBottom ? 0 : _statusBarHeight) + (_alertPosition == ISAlertPositionBottom ? 10 : (_statusBarHeight / 2));
 
     self.messageLabelHeight = ceilf([self preferredHeightForMessageString:_messageString]);
@@ -142,7 +156,7 @@ static NSMutableArray* currentAlertArray = nil;
     if (_alertViewHeight < kDefaultCardViewHeight) {
         self.alertViewHeight = kDefaultCardViewHeight;
     }
-    
+
     CGFloat insetCorrection = 0;
     if (@available(iOS 11.0, *)) {
         if (_alertPosition == ISAlertPositionBottom) {
@@ -262,7 +276,7 @@ static NSMutableArray* currentAlertArray = nil;
         UITapGestureRecognizer* tapGesture = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(gestureActionWithHandler)];
         [self.view addGestureRecognizer:tapGesture];
     }
-  
+
     if (didBegin) {
         _beginning = didBegin;
     }
@@ -306,7 +320,7 @@ static NSMutableArray* currentAlertArray = nil;
                              self.view.alpha = 1.f;
                              self->_beginning(false);
                          }];
-        
+
         [currentAlertArray addObject:self];
 
         UIAccessibilityPostNotification(UIAccessibilityScreenChangedNotification, self.view);
@@ -316,23 +330,23 @@ static NSMutableArray* currentAlertArray = nil;
             [self performSelector:@selector(hide:) withObject:@(NO) afterDelay:_duration];
         }
     }
-    
+
 }
 
 - (void)hide:(NSNumber*)force {
-    
+
     NSTimeInterval delayDuration = 0.f;
-    
+
     if (self.view.layer.animationKeys) {
         delayDuration = 0.5f;
     }
-    
+
     if (force.boolValue == YES) {
         [self performSelector:@selector(forceHideInMain) withObject:nil afterDelay:0.f];
     } else {
         [self performSelector:@selector(hideInMain) withObject:nil afterDelay:delayDuration];
     }
-    
+
     if (_completion) {
         _completion(YES);
     }
@@ -352,20 +366,20 @@ static NSMutableArray* currentAlertArray = nil;
 #pragma mark - Private Methods
 
 - (void)hideInMain {
-    
+
     if ([currentAlertArray containsObject:self]) {
         @synchronized (currentAlertArray) {
-            
+
             [NSRunLoop cancelPreviousPerformRequestsWithTarget:self];
             [currentAlertArray removeObject:self];
-            
+
             CGFloat screenHeight = [UIScreen mainScreen].bounds.size.height;
             CGFloat alertYPosition = -_alertViewHeight;
-            
+
             if (_alertPosition == ISAlertPositionBottom) {
                 alertYPosition = screenHeight;
             }
-            
+
             [UIView animateWithDuration:0.3f animations:^{
                 self.view.alpha = 0.7;
                 self.view.frame = CGRectMake(0, alertYPosition, self.view.frame.size.width, self.view.frame.size.height);
@@ -375,21 +389,21 @@ static NSMutableArray* currentAlertArray = nil;
                 [self.view removeFromSuperview];
                 UIAccessibilityPostNotification(UIAccessibilityScreenChangedNotification, nil);
             }];
-            
+
         }
     }
-    
+
 }
 
 - (void)forceHideInMain {
-    
+
     if (currentAlertArray && [currentAlertArray count] > 0) {
         @synchronized (currentAlertArray) {
-            
+
             ISMessages* activeAlert = currentAlertArray[0];
             [NSRunLoop cancelPreviousPerformRequestsWithTarget:activeAlert];
             [currentAlertArray removeObject:activeAlert];
-            
+
             [UIView animateWithDuration:0.1f
                              animations:^{
                                  activeAlert.view.alpha = 0.f;
@@ -398,14 +412,14 @@ static NSMutableArray* currentAlertArray = nil;
                                  [activeAlert removeFromParentViewController];
                                  UIAccessibilityPostNotification(UIAccessibilityScreenChangedNotification, nil);
                              }];
-            
+
         }
     }
-    
+
 }
 
 + (void)hideAlertAnimated:(BOOL)animated {
-    
+
     if (currentAlertArray && [currentAlertArray count] != 0) {
         ISMessages* alert = currentAlertArray[0];
         [alert hide:[NSNumber numberWithBool:!animated]];
@@ -414,47 +428,47 @@ static NSMutableArray* currentAlertArray = nil;
 }
 
 - (CGFloat)preferredHeightForMessageString:(NSString*)message {
-    
+
     if (!message || message.length == 0) {
         return ceilf(0.f);
     }
-    
+
     NSMutableParagraphStyle* paragraphStyle = [[NSMutableParagraphStyle defaultParagraphStyle] mutableCopy];
     paragraphStyle.lineBreakMode = NSLineBreakByWordWrapping;
     paragraphStyle.alignment = NSTextAlignmentLeft;
-    
+
     CGFloat screenWidth = [UIScreen mainScreen].bounds.size.width;
-    
+
     CGFloat messageHeight = [message boundingRectWithSize:CGSizeMake(screenWidth - 40.f - _iconImageSize.height, CGFLOAT_MAX)
                                                   options:NSStringDrawingUsesLineFragmentOrigin
                                                attributes:@{NSParagraphStyleAttributeName : paragraphStyle,
                                                             NSFontAttributeName : _messageLabelFont}
                                                   context:nil].size.height;
-    
+
     return ceilf(messageHeight);
-    
+
 }
 
 - (CGFloat)preferredHeightForTitleString:(NSString*)title {
-    
+
     if (!title || title.length == 0) {
         return ceilf(0.f);
     }
-    
+
     NSMutableParagraphStyle* paragraphStyle = [[NSMutableParagraphStyle defaultParagraphStyle] mutableCopy];
     paragraphStyle.lineBreakMode = NSLineBreakByWordWrapping;
     paragraphStyle.alignment = NSTextAlignmentLeft;
-    
+
     CGFloat screenWidth = [UIScreen mainScreen].bounds.size.width;
-    
+
     CGFloat titleHeight = [title boundingRectWithSize:CGSizeMake(screenWidth - 40.f - _iconImageSize.height, CGFLOAT_MAX)
                                                   options:NSStringDrawingUsesLineFragmentOrigin
                                                attributes:@{NSParagraphStyleAttributeName : paragraphStyle,
                                                             NSFontAttributeName : _titleLabelFont}
                                                   context:nil].size.height;
-    
+
     return ceilf(titleHeight);
-    
+
 }
 
 - (UIImage*)imageNamed:(NSString*)name {
@@ -466,7 +480,7 @@ static NSMutableArray* currentAlertArray = nil;
 }
 
 - (void)configureViewForAlertType:(ISAlertType)alertType iconImage:(UIImage*)iconImage {
-    
+
     self.titleLabelTextColor = [UIColor whiteColor];
     self.messageLabelTextColor = [UIColor whiteColor];
     if (@available(iOS 8.2, *)) {
@@ -475,9 +489,9 @@ static NSMutableArray* currentAlertArray = nil;
         self.titleLabelFont = [UIFont systemFontOfSize:15.f];
     }
     self.messageLabelFont = [UIFont systemFontOfSize:15.f];
-    
+
     self.iconImage = iconImage;
-    
+
     switch (alertType) {
         case ISAlertTypeSuccess: {
             self.alertTypeAcessibilityLabel = NSLocalizedString(@"Success", comment: "");
