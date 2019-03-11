@@ -10,10 +10,8 @@ Pod::Spec.new do |s|
   s.source           = { :git => 'https://github.com/ilyainyushin/ISMessages.git', :tag => s.version.to_s }
   s.social_media_url = 'https://twitter.com/trsaltn'
 
-  s.ios.deployment_target = '8.0'
-
   s.source_files = 'ISMessages/Classes/**/*'
-  
+
   s.resource_bundles = {
     'ISMessages' => ['ISMessages/Assets/*.png']
   }
